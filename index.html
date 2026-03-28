@@ -9,17 +9,14 @@
     <meta name="apple-mobile-web-app-title" content="عدادي">
     <title>⏱️ عداد الوقت | Timer Master</title>
     
-    <!-- Manifest مدمج في الـ HTML -->
-    <link rel="manifest" href="data:application/manifest+json,{}">
-    
-    <!-- أيقونات مدمجة (base64) -->
-    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23667eea'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white'%3E⏱️%3C/text%3E%3C/svg%3E">
-    <link rel="icon" type="image/png" sizes="512x512" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23667eea'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white'%3E⏱️%3C/text%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23667eea'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white'%3E⏱️%3C/text%3E%3C/svg%3E">
+    <!-- ملفات PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
     <style>
         * {
             margin: 0;
@@ -40,7 +37,6 @@
             padding: 20px;
         }
 
-        /* خلفية متحركة */
         .bg-animation {
             position: fixed;
             top: 0;
@@ -66,7 +62,6 @@
             100% { transform: translate(-50%, -50%); }
         }
 
-        /* الحاوية الرئيسية */
         .timer-container {
             position: relative;
             z-index: 10;
@@ -76,7 +71,6 @@
             padding: clamp(15px, 3vw, 40px);
         }
 
-        /* البطاقة الرئيسية */
         .timer-card {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(20px);
@@ -87,7 +81,6 @@
             transition: all 0.3s;
         }
 
-        /* شاشة العداد */
         .timer-screen {
             background: rgba(0, 0, 0, 0.5);
             border-radius: clamp(50px, 8vw, 100px);
@@ -119,7 +112,6 @@
             letter-spacing: 2px;
         }
 
-        /* أزرار التحكم */
         .timer-controls {
             display: flex;
             justify-content: center;
@@ -168,7 +160,6 @@
             box-shadow: 0 5px 20px rgba(63, 43, 150, 0.3);
         }
 
-        /* الأوقات السريعة */
         .preset-section {
             margin-bottom: clamp(30px, 5vw, 50px);
         }
@@ -207,7 +198,6 @@
             border-color: rgba(102, 126, 234, 0.8);
         }
 
-        /* وقت مخصص */
         .custom-section {
             display: flex;
             justify-content: center;
@@ -258,7 +248,6 @@
             box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
         }
 
-        /* مؤشر الحالة */
         .status-indicator {
             text-align: center;
             margin-top: clamp(30px, 5vw, 50px);
@@ -291,7 +280,6 @@
             50% { opacity: 0.5; transform: scale(1.2); }
         }
 
-        /* مؤشر التثبيت */
         .install-prompt {
             position: fixed;
             bottom: clamp(20px, 3vh, 40px);
@@ -322,7 +310,6 @@
             50% { transform: translateX(-50%) translateY(-10px); }
         }
 
-        /* زر الوضع المظلم */
         .theme-toggle {
             position: fixed;
             top: clamp(15px, 3vh, 25px);
@@ -347,7 +334,6 @@
             transform: scale(1.1);
         }
 
-        /* رسالة نجاح */
         .toast-message {
             position: fixed;
             bottom: clamp(80px, 10vh, 120px);
@@ -383,7 +369,6 @@
             .custom-section { flex-direction: column; }
         }
 
-        /* وضع فاتح */
         body.light-mode {
             background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
         }
@@ -492,38 +477,6 @@
     <div id="toastMessage" class="toast-message"></div>
 
     <script>
-        // إنشاء manifest ديناميكياً
-        const manifestData = {
-            name: "عداد الوقت",
-            short_name: "عدادي",
-            description: "عداد أنيق لقياس الوقت",
-            start_url: "/",
-            display: "standalone",
-            orientation: "portrait",
-            theme_color: "#667eea",
-            background_color: "#1a1a2e",
-            icons: [
-                {
-                    src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23667eea'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white'%3E⏱️%3C/text%3E%3C/svg%3E",
-                    sizes: "192x192",
-                    type: "image/svg+xml",
-                    purpose: "any maskable"
-                },
-                {
-                    src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23667eea'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white'%3E⏱️%3C/text%3E%3C/svg%3E",
-                    sizes: "512x512",
-                    type: "image/svg+xml",
-                    purpose: "any maskable"
-                }
-            ]
-        };
-
-        // إنشاء manifest بلوب وربطه
-        const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(manifestBlob);
-        const manifestLink = document.querySelector('link[rel="manifest"]');
-        manifestLink.href = manifestURL;
-
         // ==================== متغيرات العداد ====================
         let timerSeconds = 1500;
         let timerRunning = false;
@@ -554,6 +507,18 @@
                     deferredPrompt = null;
                 });
             }
+        }
+        
+        // ==================== تسجيل Service Worker ====================
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(registration => {
+                    console.log('Service Worker registered successfully');
+                    showToast('✅ التطبيق جاهز للتثبيت');
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
         }
         
         // ==================== الصوت ====================
