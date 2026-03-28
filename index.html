@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="عدادي">
+    <title>⏱️ عداد الوقت | Timer Master</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            width: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Cairo', sans-serif;
+            position: relative;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        /* خلفية متحركة - تتمدد مع الشاشة */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(102,126,234,0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: moveBg 60s linear infinite;
+        }
+
+        @keyframes moveBg {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-50%, -50%); }
+        }
+
+        /* الحاوية الرئيسية - تأخذ 100% من العرض المتاح */
+        .timer-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: clamp(15px, 3vw, 40px);
+        }
+
+        /* البطاقة الرئيسية - تتمدد مع الشاشة */
+        .timer-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: clamp(40px, 8vw, 120px);
+            padding: clamp(30px, 5vw, 70px) clamp(25px, 4vw, 60px);
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        /* شاشة العداد - تتمدد */
+        .timer-screen {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: clamp(50px, 8vw, 100px);
+            padding: clamp(40px, 6vw, 80px) clamp(20px, 4vw, 40px);
+            margin-bottom: clamp(30px, 5vw, 60px);
+            text-align: center;
+            box-shadow: inset 0 5px 15px rgba(0, 0, 0, 0.3), 0 5px 15px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* الأرقام - تكبر مع الشاشة */
+        .timer-display {
+            font-size: clamp(3.5rem, 15vw, 12rem);
+            font-weight: 800;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(102, 126, 234, 0.5), 0 0 40px rgba(102, 126, 234, 0.3);
+            letter-spacing: clamp(5px, 2vw, 20px);
+            background: linear-gradient(135deg, #fff, #a8b5ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            transition: all 0.3s;
+        }
+
+        .timer-label {
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: clamp(15px, 3vw, 25px);
+            font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+            letter-spacing: 2px;
+        }
+
+        /* أزرار التحكم - تكبر مع الشاشة */
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: clamp(20px, 5vw, 50px);
+            margin-bottom: clamp(40px, 6vw, 70px);
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            width: clamp(70px, 12vw, 130px);
+            height: clamp(70px, 12vw, 130px);
+            border-radius: 50%;
+            border: none;
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn.play {
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            box-shadow: 0 5px 20px rgba(0, 210, 255, 0.3);
+        }
+
+        .control-btn.pause {
+            background: linear-gradient(135deg, #f5af19, #f12711);
+            box-shadow: 0 5px 20px rgba(241, 39, 17, 0.3);
+        }
+
+        .control-btn.reset {
+            background: linear-gradient(135deg, #a8c0ff, #3f2b96);
+            box-shadow: 0 5px 20px rgba(63, 43, 150, 0.3);
+        }
+
+        /* الأوقات السريعة */
+        .preset-section {
+            margin-bottom: clamp(30px, 5vw, 50px);
+        }
+
+        .preset-title {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: clamp(20px, 3vw, 35px);
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            letter-spacing: 2px;
+        }
+
+        .preset-buttons {
+            display: flex;
+            justify-content: center;
+            gap: clamp(10px, 2vw, 20px);
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            padding: clamp(10px, 2vw, 18px) clamp(20px, 4vw, 40px);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: clamp(0.85rem, 2vw, 1.1rem);
+            backdrop-filter: blur(5px);
+        }
+
+        .preset-btn:hover {
+            background: rgba(102, 126, 234, 0.5);
+            transform: translateY(-2px);
+            border-color: rgba(102, 126, 234, 0.8);
+        }
+
+        /* وقت مخصص */
+        .custom-section {
+            display: flex;
+            justify-content: center;
+            gap: clamp(15px, 3vw, 30px);
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: clamp(20px, 4vw, 40px);
+            padding-top: clamp(20px, 4vw, 40px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .custom-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: clamp(12px, 2.5vw, 18px) clamp(20px, 4vw, 30px);
+            border-radius: 50px;
+            width: clamp(120px, 25vw, 180px);
+            text-align: center;
+            color: white;
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            font-weight: 600;
+            outline: none;
+        }
+
+        .custom-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .custom-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .custom-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            padding: clamp(12px, 2.5vw, 18px) clamp(25px, 5vw, 50px);
+            border-radius: 50px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: clamp(0.9rem, 2vw, 1rem);
+        }
+
+        .custom-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* مؤشر الحالة */
+        .status-indicator {
+            text-align: center;
+            margin-top: clamp(30px, 5vw, 50px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: clamp(12px, 2vw, 20px);
+        }
+
+        .status-dot {
+            width: clamp(10px, 1.5vw, 16px);
+            height: clamp(10px, 1.5vw, 16px);
+            border-radius: 50%;
+            background: #48dbfb;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.paused {
+            background: #ff6b6b;
+            animation: none;
+        }
+
+        .status-text {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: clamp(0.8rem, 2vw, 1rem);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* مؤشر التثبيت */
+        .install-prompt {
+            position: fixed;
+            bottom: clamp(20px, 3vh, 40px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            color: white;
+            padding: clamp(12px, 2vw, 18px) clamp(20px, 4vw, 35px);
+            border-radius: 60px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            cursor: pointer;
+            animation: bounce 0.5s ease;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            font-weight: 600;
+            font-size: clamp(0.8rem, 2vw, 1rem);
+            white-space: nowrap;
+        }
+
+        .install-prompt.show {
+            display: flex;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-10px); }
+        }
+
+        /* زر الوضع المظلم/فاتح */
+        .theme-toggle {
+            position: fixed;
+            top: clamp(15px, 3vh, 25px);
+            right: clamp(15px, 3vw, 25px);
+            width: clamp(45px, 7vw, 60px);
+            height: clamp(45px, 7vw, 60px);
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: clamp(1.2rem, 3vw, 1.5rem);
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        /* رسالة نجاح */
+        .toast-message {
+            position: fixed;
+            bottom: clamp(80px, 10vh, 120px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+            color: white;
+            padding: clamp(10px, 2vw, 15px) clamp(20px, 4vw, 30px);
+            border-radius: 50px;
+            z-index: 1500;
+            display: none;
+            text-align: center;
+            font-weight: 600;
+            font-size: clamp(0.8rem, 2vw, 1rem);
+            white-space: nowrap;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .toast-message {
+                white-space: normal;
+                width: 90%;
+                text-align: center;
+                bottom: 100px;
+            }
+            .install-prompt {
+                white-space: normal;
+                text-align: center;
+                width: 90%;
+                justify-content: center;
+                bottom: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            .timer-controls {
+                gap: 15px;
+            }
+            .preset-buttons {
+                gap: 8px;
+            }
+            .custom-section {
+                flex-direction: column;
+            }
+        }
+
+        /* وضع فاتح */
+        body.light-mode {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+        }
+
+        body.light-mode .timer-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.1);
+        }
+
+        body.light-mode .timer-screen {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        body.light-mode .timer-display {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        body.light-mode .preset-btn {
+            background: rgba(0, 0, 0, 0.05);
+            color: #333;
+        }
+
+        body.light-mode .custom-input {
+            background: rgba(0, 0, 0, 0.05);
+            color: #333;
+        }
+
+        body.light-mode .status-text {
+            color: #666;
+        }
+
+        body.light-mode .theme-toggle {
+            background: rgba(0, 0, 0, 0.1);
+            color: #333;
+        }
+
+        /* للشاشات الكبيرة جداً (4K) */
+        @media (min-width: 1920px) {
+            .timer-container {
+                max-width: 1800px;
+            }
+            .control-btn {
+                width: 150px;
+                height: 150px;
+                font-size: 3.5rem;
+            }
+            .timer-display {
+                font-size: 12rem;
+            }
+        }
+
+        /* للشاشات الأفقية على التابلت */
+        @media (orientation: landscape) and (max-height: 800px) {
+            .timer-container {
+                padding: 10px;
+            }
+            .timer-card {
+                padding: 20px 30px;
+            }
+            .timer-screen {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            .timer-controls {
+                margin-bottom: 20px;
+                gap: 20px;
+            }
+            .control-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 1.3rem;
+            }
+            .preset-section {
+                margin-bottom: 15px;
+            }
+            .preset-buttons {
+                gap: 8px;
+            }
+            .preset-btn {
+                padding: 6px 12px;
+                font-size: 0.75rem;
+            }
+            .custom-section {
+                margin-top: 15px;
+                padding-top: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+
+    <div class="install-prompt" id="installPrompt" onclick="installPWA()">
+        <i class="fas fa-download"></i>
+        <span>📱 اضغط لتثبيت التطبيق على الشاشة الرئيسية</span>
+        <i class="fas fa-arrow-up"></i>
+    </div>
+
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-sun"></i>
+    </button>
+
+    <div class="timer-container">
+        <div class="timer-card">
+            <!-- شاشة العداد -->
+            <div class="timer-screen">
+                <div class="timer-display" id="timerDisplay">25:00</div>
+                <div class="timer-label">الوقت المتبقي</div>
+            </div>
+
+            <!-- أزرار التحكم -->
+            <div class="timer-controls">
+                <button class="control-btn play" onclick="startTimer()">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="control-btn pause" onclick="pauseTimer()">
+                    <i class="fas fa-pause"></i>
+                </button>
+                <button class="control-btn reset" onclick="resetTimer()">
+                    <i class="fas fa-undo-alt"></i>
+                </button>
+            </div>
+
+            <!-- أوقات سريعة -->
+            <div class="preset-section">
+                <div class="preset-title">
+                    <i class="fas fa-bolt"></i> أوقات سريعة
+                </div>
+                <div class="preset-buttons">
+                    <button class="preset-btn" onclick="setPresetTime(1)">1 دقيقة</button>
+                    <button class="preset-btn" onclick="setPresetTime(5)">5 دقائق</button>
+                    <button class="preset-btn" onclick="setPresetTime(15)">15 دقيقة</button>
+                    <button class="preset-btn" onclick="setPresetTime(25)">25 دقيقة</button>
+                    <button class="preset-btn" onclick="setPresetTime(60)">60 دقيقة</button>
+                </div>
+            </div>
+
+            <!-- وقت مخصص -->
+            <div class="custom-section">
+                <input type="number" id="customMinutes" class="custom-input" placeholder="دقائق" min="1" max="180">
+                <button class="custom-btn" onclick="setCustomTime()">
+                    <i class="fas fa-check"></i> ضبط وقت مخصص
+                </button>
+            </div>
+
+            <!-- مؤشر الحالة -->
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <div class="status-text" id="statusText">في انتظار التشغيل</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastMessage" class="toast-message"></div>
+
+    <script>
+        // ==================== متغيرات العداد ====================
+        let timerSeconds = 1500; // 25 دقيقة
+        let timerRunning = false;
+        let timerInterval = null;
+        
+        // عناصر DOM
+        const timerDisplay = document.getElementById('timerDisplay');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        
+        // صوت عند انتهاء الوقت
+        let audioContext = null;
+        
+        // ==================== PWA ====================
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').classList.add('show');
+        });
+        
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        showToast('✅ تم تثبيت التطبيق بنجاح');
+                        document.getElementById('installPrompt').classList.remove('show');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+        
+        // ==================== تشغيل الصوت عند انتهاء الوقت ====================
+        function playFinishSound() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                const now = audioContext.currentTime;
+                
+                function playNote(frequency, startTime, duration) {
+                    const oscillator = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    oscillator.type = 'sine';
+                    oscillator.frequency.value = frequency;
+                    gain.gain.value = 0.3;
+                    oscillator.connect(gain);
+                    gain.connect(audioContext.destination);
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + duration);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+                }
+                
+                // نغمة انتهاء الوقت
+                playNote(523.25, now, 0.3);
+                playNote(587.33, now + 0.2, 0.3);
+                playNote(659.25, now + 0.4, 0.3);
+                playNote(698.46, now + 0.6, 0.3);
+                playNote(783.99, now + 0.8, 0.5);
+                playNote(880.00, now + 1.1, 0.8);
+                
+            } catch (e) {
+                console.log('صوت غير مدعوم');
+            }
+        }
+        
+        // ==================== تحديث الشاشة ====================
+        function updateDisplay() {
+            const minutes = Math.floor(timerSeconds / 60);
+            const seconds = timerSeconds % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // ==================== تحديث حالة المؤشر ====================
+        function updateStatus() {
+            if (timerRunning) {
+                statusDot.classList.remove('paused');
+                statusText.textContent = '⏱️ يعمل...';
+            } else {
+                statusDot.classList.add('paused');
+                if (timerSeconds === 0) {
+                    statusText.textContent = '✅ انتهى الوقت!';
+                } else {
+                    statusText.textContent = '⏸️ متوقف';
+                }
+            }
+        }
+        
+        // ==================== بدء العداد ====================
+        function startTimer() {
+            if (timerRunning) return;
+            
+            if (timerSeconds <= 0) {
+                showToast('⏰ انتهى الوقت! اضغط إعادة ضبط');
+                return;
+            }
+            
+            timerRunning = true;
+            updateStatus();
+            
+            timerInterval = setInterval(() => {
+                if (timerSeconds > 0) {
+                    timerSeconds--;
+                    updateDisplay();
+                    
+                    // تأثير اهتزاز خفيف عند آخر 5 ثواني
+                    if (timerSeconds <= 5 && timerSeconds > 0) {
+                        timerDisplay.style.transform = 'scale(1.05)';
+                        setTimeout(() => {
+                            timerDisplay.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                }
+                
+                if (timerSeconds === 0) {
+                    pauseTimer();
+                    updateDisplay();
+                    playFinishSound();
+                    showToast('🎉 انتهى الوقت! 🎉');
+                    
+                    // تأثير احتفالي
+                    timerDisplay.style.animation = 'none';
+                    timerDisplay.offsetHeight;
+                    timerDisplay.style.animation = 'pulse 0.5s ease 3';
+                    
+                    // إضافة تأثير وميض للشاشة
+                    const screen = document.querySelector('.timer-screen');
+                    screen.style.animation = 'none';
+                    screen.offsetHeight;
+                    screen.style.animation = 'flash 0.5s ease 3';
+                    
+                    updateStatus();
+                }
+            }, 1000);
+        }
+        
+        // ==================== إيقاف العداد مؤقتاً ====================
+        function pauseTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            timerRunning = false;
+            updateStatus();
+        }
+        
+        // ==================== إعادة ضبط العداد ====================
+        function resetTimer() {
+            pauseTimer();
+            timerSeconds = 1500;
+            updateDisplay();
+            updateStatus();
+            showToast('🔄 تم إعادة الضبط');
+        }
+        
+        // ==================== ضبط وقت محدد مسبقاً ====================
+        function setPresetTime(minutes) {
+            pauseTimer();
+            timerSeconds = minutes * 60;
+            updateDisplay();
+            updateStatus();
+            showToast(`✅ تم ضبط ${minutes} دقيقة`);
+            
+            // تأثير
+            timerDisplay.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                timerDisplay.style.transform = 'scale(1)';
+            }, 200);
+        }
+        
+        // ==================== ضبط وقت مخصص ====================
+        function setCustomTime() {
+            const minutes = parseInt(document.getElementById('customMinutes').value);
+            
+            if (isNaN(minutes) || minutes < 1 || minutes > 180) {
+                showToast('❌ أدخل وقت بين 1 و 180 دقيقة');
+                return;
+            }
+            
+            pauseTimer();
+            timerSeconds = minutes * 60;
+            updateDisplay();
+            updateStatus();
+            showToast(`✅ تم ضبط ${minutes} دقيقة`);
+            
+            document.getElementById('customMinutes').value = '';
+            
+            // تأثير
+            timerDisplay.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                timerDisplay.style.transform = 'scale(1)';
+            }, 200);
+        }
+        
+        // ==================== تبديل الوضع (فاتح/داكن) ====================
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const btn = document.querySelector('.theme-toggle i');
+            
+            if (document.body.classList.contains('light-mode')) {
+                btn.className = 'fas fa-moon';
+                localStorage.setItem('timer_theme', 'light');
+                showToast('☀️ الوضع الفاتح');
+            } else {
+                btn.className = 'fas fa-sun';
+                localStorage.setItem('timer_theme', 'dark');
+                showToast('🌙 الوضع الداكن');
+            }
+        }
+        
+        // ==================== عرض رسالة منبثقة ====================
+        function showToast(message) {
+            const toast = document.getElementById('toastMessage');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                    toast.style.opacity = '1';
+                }, 300);
+            }, 2000);
+        }
+        
+        // ==================== إضافة تأثيرات CSS إضافية ====================
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); text-shadow: 0 0 0 rgba(102,126,234,0); }
+                50% { transform: scale(1.1); text-shadow: 0 0 30px rgba(102,126,234,0.8); }
+                100% { transform: scale(1); text-shadow: 0 0 0 rgba(102,126,234,0); }
+            }
+            
+            @keyframes flash {
+                0% { background: rgba(255,255,255,0.1); }
+                50% { background: rgba(102,126,234,0.3); }
+                100% { background: rgba(255,255,255,0.1); }
+            }
+            
+            .timer-display {
+                transition: transform 0.2s ease;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // ==================== تهيئة الصفحة ====================
+        function init() {
+            updateDisplay();
+            updateStatus();
+            
+            // استعادة الوضع المظلم/الفاتح
+            const savedTheme = localStorage.getItem('timer_theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-mode');
+                document.querySelector('.theme-toggle i').className = 'fas fa-moon';
+            }
+            
+            // منع إغلاق الصفحة أثناء التشغيل (تحذير)
+            window.addEventListener('beforeunload', (e) => {
+                if (timerRunning) {
+                    e.preventDefault();
+                    e.returnValue = 'العداد لا يزال يعمل، هل تريد المغادرة؟';
+                }
+            });
+        }
+        
+        init();
+    </script>
+</body>
+</html>
